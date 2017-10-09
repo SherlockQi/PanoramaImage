@@ -56,27 +56,27 @@ class ViewController: UIViewController {
             print(gesture.numberOfTouches)
             return
         }
-if gesture.state == .began {
-    let currentPoint = gesture .location(in: self.scnView)
-    lastPoint_x = currentPoint.x
-    lastPoint_y = currentPoint.y
-}else{
-    let currentPoint = gesture .location(in: self.scnView)
-    var distX = currentPoint.x - lastPoint_x
-    var distY:CGFloat = currentPoint.y - lastPoint_y
-    lastPoint_x = currentPoint.x
-    lastPoint_y = currentPoint.y
-    distX *= -0.003
-    distY *= -0.003
-    
-    fingerRotationY += distY
-    fingerRotationX += distX
-    
-    var modelMatrix = SCNMatrix4MakeRotation(0, 0, 0, 0)
-    modelMatrix = SCNMatrix4Rotate(modelMatrix, Float(fingerRotationX),0, 1, 0);
-    modelMatrix = SCNMatrix4Rotate(modelMatrix, Float(fingerRotationY), 1, 0, 0);
-    self.cameraNode.pivot = modelMatrix;
-}
+        if gesture.state == .began {
+            let currentPoint = gesture .location(in: self.scnView)
+            lastPoint_x = currentPoint.x
+            lastPoint_y = currentPoint.y
+        }else{
+            let currentPoint = gesture .location(in: self.scnView)
+            var distX = currentPoint.x - lastPoint_x
+            var distY:CGFloat = currentPoint.y - lastPoint_y
+            lastPoint_x = currentPoint.x
+            lastPoint_y = currentPoint.y
+            distX *= -0.003
+            distY *= -0.003
+            
+            fingerRotationY += distY
+            fingerRotationX += distX
+            
+            var modelMatrix = SCNMatrix4MakeRotation(0, 0, 0, 0)
+            modelMatrix = SCNMatrix4Rotate(modelMatrix, Float(fingerRotationX),0, 1, 0);
+            modelMatrix = SCNMatrix4Rotate(modelMatrix, Float(fingerRotationY), 1, 0, 0);
+            self.cameraNode.pivot = modelMatrix;
+        }
         
     }
 }
