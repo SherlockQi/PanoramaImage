@@ -37,7 +37,10 @@ class ViewController: UIViewController {
         //添加图片显示节点
         let panoramaNode = SCNNode()
         panoramaNode.geometry = SCNSphere(radius: 150);
-        panoramaNode.geometry?.firstMaterial?.isDoubleSided = true
+        //剔除外表面
+        panoramaNode.geometry?.firstMaterial?.cullMode = .front
+        //只显示一个面
+        panoramaNode.geometry?.firstMaterial?.isDoubleSided = false
         panoramaNode.position = SCNVector3Make(0, 0, 0);
         scnView.scene?.rootNode.addChildNode(panoramaNode);
         //图片
