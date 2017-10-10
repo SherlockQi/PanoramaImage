@@ -80,6 +80,5 @@ class ViewController: UIViewController {
             modelMatrix = SCNMatrix4Rotate(modelMatrix, Float(fingerRotationY), 1, 0, 0);
             self.cameraNode.pivot = modelMatrix;
         }
-        
     }
 }
