@@ -22,6 +22,19 @@ class ViewController: UIViewController {
     var fingerRotationY:CGFloat = 0
     var fingerRotationX:CGFloat = 0
     
+    
+    //上次缩合
+    var prevScale       :CGFloat = 1.0
+    //本次缩合
+    var currentScale    :CGFloat = 1.0
+    //缩合限制
+    let sScaleMin        :CGFloat = 0.5
+    let sScaleMax        :CGFloat = 5.0
+    let camera_Fox       :Double  = 90.0
+    let camera_Height    :Double  = 50.0
+
+    
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         //添加场景 容器
@@ -33,6 +46,11 @@ class ViewController: UIViewController {
         cameraNode.camera = camera
         cameraNode.camera?.automaticallyAdjustsZRange = true;
         cameraNode.position = SCNVector3Make(0, 0, 0);
+        cameraNode.camera?.xFov = camera_Fox;
+        cameraNode.camera?.yFov = camera_Fox;
+        cameraNode.camera?.yFov = camera_Fox;
+
+        
         scnView.scene?.rootNode.addChildNode(cameraNode);
         //添加图片显示节点
         let panoramaNode = SCNNode()
@@ -49,16 +67,17 @@ class ViewController: UIViewController {
         //添加手势
         let pan = UIPanGestureRecognizer(target: self, action: #selector(panImage(gesture:)))
         scnView.addGestureRecognizer(pan)
+        
+        let pinch = UIPinchGestureRecognizer(target: self, action: #selector(pinchGesture(gesture:)))
+        scnView.addGestureRecognizer(pinch)
+
     }
     
     @objc func panImage(gesture:UIGestureRecognizer){
         if !gesture.isKind(of: UIPanGestureRecognizer.self){
             return
         }
-        if gesture.numberOfTouches > 1{
-            print(gesture.numberOfTouches)
-            return
-        }
+
         if gesture.state == .began {
             let currentPoint = gesture .location(in: self.scnView)
             lastPoint_x = currentPoint.x
@@ -81,4 +100,43 @@ class ViewController: UIViewController {
             self.cameraNode.pivot = modelMatrix;
         }
     }
+    //捏合手势
+    @objc func pinchGesture(gesture:UIGestureRecognizer){
+        if !gesture.isKind(of: UIPinchGestureRecognizer.self){
+            return
+        }
+
+        
+        let pinchGesture = gesture as! UIPinchGestureRecognizer
+        
+        if pinchGesture.state != .ended && pinchGesture.state != .failed{
+            if/* pinchGesture.scale != NAN  && */ pinchGesture.scale != 0.0{
+                
+                var scale = pinchGesture.scale - 1
+                if scale < 0 {
+                    scale *= (sScaleMax - sScaleMin)
+                }
+                    currentScale = scale + prevScale
+                    currentScale = validateScale(scale: currentScale)
+                    let valScale = validateScale(scale: currentScale)
+                    let xFov = 90 * (1-(valScale-1)*0.15)
+                    let yFov = 50 * (1-(valScale-1)*0.15)
+                    cameraNode.camera?.xFov = Double(xFov)
+                    cameraNode.camera?.yFov = Double(yFov)
+            }
+            }else if pinchGesture.state == .ended{
+            prevScale = currentScale
+        }
+    }
+    
+    private func validateScale(scale:CGFloat) -> CGFloat {
+        var validateScale = scale
+        if scale < sScaleMin {
+            validateScale = sScaleMin
+        } else if scale > sScaleMax{
+            validateScale = sScaleMax
+        }
+        return validateScale
+    }
 }
+
