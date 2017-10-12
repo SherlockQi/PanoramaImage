@@ -8,6 +8,7 @@
 
 import UIKit
 import SceneKit
+import CoreMotion
 
 class ViewController: UIViewController {
     let scnView = SCNView()
@@ -30,10 +31,15 @@ class ViewController: UIViewController {
     //缩合限制
     let sScaleMin        :CGFloat = 0.5
     let sScaleMax        :CGFloat = 5.0
-    let camera_Fox       :Double  = 90.0
+    let camera_Fox       :Double  = 60.0
     let camera_Height    :Double  = 50.0
 
     
+    lazy var motionManager: CMMotionManager = {
+        let motionManager = CMMotionManager()
+        motionManager.deviceMotionUpdateInterval = 1.0 / 60
+        return motionManager
+    }()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -64,13 +70,34 @@ class ViewController: UIViewController {
         //图片
         let image = UIImage(named: "image")
         panoramaNode.geometry?.firstMaterial?.diffuse.contents = image
+       
         //添加手势
-        let pan = UIPanGestureRecognizer(target: self, action: #selector(panImage(gesture:)))
-        scnView.addGestureRecognizer(pan)
-        
-        let pinch = UIPinchGestureRecognizer(target: self, action: #selector(pinchGesture(gesture:)))
-        scnView.addGestureRecognizer(pinch)
+//        let pan = UIPanGestureRecognizer(target: self, action: #selector(panImage(gesture:)))
+//        scnView.addGestureRecognizer(pan)
+//
+//        let pinch = UIPinchGestureRecognizer(target: self, action: #selector(pinchGesture(gesture:)))
+//        scnView.addGestureRecognizer(pinch)
 
+        motionManager.startDeviceMotionUpdates(using: .xArbitraryCorrectedZVertical, to: OperationQueue(), withHandler: { (motion, erroe) in
+            var vector = SCNVector3Zero
+            let orientation = UIApplication.shared.statusBarOrientation
+            
+            if orientation == UIInterfaceOrientation.portrait{
+                vector.x = Float((motion?.attitude.pitch)!)
+                vector.y = Float((motion?.attitude.roll)!)
+            }
+            
+//            if orientation == UIInterfaceOrientation.landscapeRight{
+//                vector.y = Float((motion?.attitude.pitch)!)
+//                vector.x = Float(-(motion?.attitude.roll)!)
+//            }
+//            if orientation == UIInterfaceOrientation.landscapeLeft{
+//                vector.y = Float(-(motion?.attitude.pitch)!)
+//                vector.x = Float((motion?.attitude.roll)!)
+//            }
+            self.cameraNode.eulerAngles = vector
+        })
+        
     }
     
     @objc func panImage(gesture:UIGestureRecognizer){
@@ -105,12 +132,10 @@ class ViewController: UIViewController {
         if !gesture.isKind(of: UIPinchGestureRecognizer.self){
             return
         }
-
-        
         let pinchGesture = gesture as! UIPinchGestureRecognizer
         
         if pinchGesture.state != .ended && pinchGesture.state != .failed{
-            if/* pinchGesture.scale != NAN  && */ pinchGesture.scale != 0.0{
+            if pinchGesture.scale != 0.0{
                 
                 var scale = pinchGesture.scale - 1
                 if scale < 0 {
@@ -118,9 +143,11 @@ class ViewController: UIViewController {
                 }
                     currentScale = scale + prevScale
                     currentScale = validateScale(scale: currentScale)
-                    let valScale = validateScale(scale: currentScale)
-                    let xFov = 90 * (1-(valScale-1)*0.15)
-                    let yFov = 50 * (1-(valScale-1)*0.15)
+                
+                let valScale = validateScale(scale: currentScale)
+                let scaleRatio = 1-(valScale-1)*0.15
+                let xFov = CGFloat(camera_Fox) * scaleRatio
+                let yFov = CGFloat(camera_Height) * scaleRatio
                     cameraNode.camera?.xFov = Double(xFov)
                     cameraNode.camera?.yFov = Double(yFov)
             }
