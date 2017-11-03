@@ -33,7 +33,11 @@ class ViewController: UIViewController {
     let sScaleMax        :CGFloat = 5.0
     let camera_Fox       :Double  = 60.0
     let camera_Height    :Double  = 50.0
-
+   //是否在进行手势操作
+    var gestureDuring    :Bool    = false
+    var rMatrix4 = SCNMatrix4Identity
+    
+    
     
     lazy var motionManager: CMMotionManager = {
         let motionManager = CMMotionManager()
@@ -72,32 +76,34 @@ class ViewController: UIViewController {
         panoramaNode.geometry?.firstMaterial?.diffuse.contents = image
        
         //添加手势
-//        let pan = UIPanGestureRecognizer(target: self, action: #selector(panImage(gesture:)))
-//        scnView.addGestureRecognizer(pan)
-//
-//        let pinch = UIPinchGestureRecognizer(target: self, action: #selector(pinchGesture(gesture:)))
-//        scnView.addGestureRecognizer(pinch)
+        let pan = UIPanGestureRecognizer(target: self, action: #selector(panImage(gesture:)))
+        scnView.addGestureRecognizer(pan)
 
-        motionManager.startDeviceMotionUpdates(using: .xArbitraryCorrectedZVertical, to: OperationQueue(), withHandler: { (motion, erroe) in
+        let pinch = UIPinchGestureRecognizer(target: self, action: #selector(pinchGesture(gesture:)))
+        scnView.addGestureRecognizer(pinch)
+
+        //roll: 设备绕 Z 轴转过的角度
+        //pitch: 设备绕 X 轴转过的角度
+        //yaw: 设备绕 Y 轴转过的角度
+
+//        CMDeviceMotion
+        motionManager.startDeviceMotionUpdates(using: .xMagneticNorthZVertical, to: OperationQueue(), withHandler: { (motion, erroe) in
             var vector = SCNVector3Zero
-            let orientation = UIApplication.shared.statusBarOrientation
-            
-            if orientation == UIInterfaceOrientation.portrait{
-                vector.x = Float((motion?.attitude.pitch)!)
-                vector.y = Float((motion?.attitude.roll)!)
+            DispatchQueue.main.async {
+                let orientation = UIApplication.shared.statusBarOrientation
+                if orientation == UIInterfaceOrientation.portrait && !self.gestureDuring{
+                    vector.x = Float((motion?.attitude.pitch)!)
+                    vector.y = Float((motion?.attitude.roll)!)
+                    var modelMatrix = SCNMatrix4MakeRotation(0, 0, 0, 0)
+                    
+                    modelMatrix = SCNMatrix4Rotate(modelMatrix, -Float(vector.y),0, 1, 0);
+                    modelMatrix = SCNMatrix4Rotate(modelMatrix, -Float(vector.x), 1, 0, 0);
+                    self.cameraNode.pivot = modelMatrix;
+//                    self.rMatrix4 = modelMatrix
+                }
+                print(self.cameraNode.pivot)
             }
-            
-//            if orientation == UIInterfaceOrientation.landscapeRight{
-//                vector.y = Float((motion?.attitude.pitch)!)
-//                vector.x = Float(-(motion?.attitude.roll)!)
-//            }
-//            if orientation == UIInterfaceOrientation.landscapeLeft{
-//                vector.y = Float(-(motion?.attitude.pitch)!)
-//                vector.x = Float((motion?.attitude.roll)!)
-//            }
-            self.cameraNode.eulerAngles = vector
         })
-        
     }
     
     @objc func panImage(gesture:UIGestureRecognizer){
@@ -106,9 +112,13 @@ class ViewController: UIViewController {
         }
 
         if gesture.state == .began {
+            
+            gestureDuring = true
             let currentPoint = gesture .location(in: self.scnView)
             lastPoint_x = currentPoint.x
             lastPoint_y = currentPoint.y
+        }else if gesture.state == .ended {
+            gestureDuring = false
         }else{
             let currentPoint = gesture .location(in: self.scnView)
             var distX = currentPoint.x - lastPoint_x
@@ -125,6 +135,7 @@ class ViewController: UIViewController {
             modelMatrix = SCNMatrix4Rotate(modelMatrix, Float(fingerRotationX),0, 1, 0);
             modelMatrix = SCNMatrix4Rotate(modelMatrix, Float(fingerRotationY), 1, 0, 0);
             self.cameraNode.pivot = modelMatrix;
+//            self.rMatrix4 = modelMatrix
         }
     }
     //捏合手势
